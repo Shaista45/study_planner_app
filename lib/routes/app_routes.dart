@@ -7,7 +7,6 @@ import 'package:smart_study_planner/screens/notifications_screen.dart';
 import 'package:smart_study_planner/screens/signup_screen.dart';
 import 'package:smart_study_planner/screens/splash_screen.dart';
 import 'package:smart_study_planner/screens/study_timetable_screen.dart';
-import 'package:smart_study_planner/screens/subject_detail_screen.dart';
 import 'package:smart_study_planner/screens/subjects_screen.dart';
 import 'package:smart_study_planner/screens/task_extras_screens.dart';
 import 'package:smart_study_planner/screens/weekly_overview_screen.dart';
@@ -53,8 +52,6 @@ class AppRoutes {
       addReminder: (_) => const AddReminderScreen(),
       searchTasks: (_) => const SearchTasksScreen(),
       subjects: (_) => const SubjectsScreen(),
-      addSubject: (_) => const AddSubjectScreen(),
-      subjectDetail: (_) => const SubjectDetailScreen(),
       studyTimetable: (_) => const StudyTimetableScreen(),
       studyProgress: (_) => const AppShell(initialIndex: 2),
       weeklyOverview: (_) => const WeeklyOverviewScreen(),

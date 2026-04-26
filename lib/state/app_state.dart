@@ -15,6 +15,8 @@ class AppState extends ChangeNotifier {
   String? _selectedTaskId;
   bool _isReady = false;
 
+  static int _idCounter = 0;
+
   bool get isReady => _isReady;
   List<Subject> get subjects => List<Subject>.unmodifiable(_subjects);
   List<StudyTask> get tasks => List<StudyTask>.unmodifiable(_tasks);
@@ -85,35 +87,61 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addSubject(String name) async {
+  // UPDATED: Now accepts teacherName and studyHours
+  Future<void> addSubject(
+    String name, {
+    String? teacherName,
+    int? studyHours,
+  }) async {
     final String trimmed = name.trim();
     if (trimmed.isEmpty) {
       return;
     }
 
-    _subjects.add(Subject(id: _newId(), name: trimmed));
+    _subjects.add(
+      Subject(
+        id: _newId(),
+        name: trimmed,
+        teacherName: teacherName,
+        studyHours: studyHours,
+      ),
+    );
     await _save();
     notifyListeners();
   }
 
+  // UPDATED: Now accepts deadline and priorityLevel
   Future<void> addTask({
     required String title,
     required String subjectId,
+    DateTime? deadline,
+    String priorityLevel = 'Medium',
   }) async {
     final String trimmed = title.trim();
     if (trimmed.isEmpty || !_subjectExists(subjectId)) {
       return;
     }
 
-    _tasks.add(StudyTask(id: _newId(), title: trimmed, subjectId: subjectId));
+    _tasks.add(
+      StudyTask(
+        id: _newId(),
+        title: trimmed,
+        subjectId: subjectId,
+        deadline: deadline,
+        priorityLevel: priorityLevel,
+      ),
+    );
     await _save();
     notifyListeners();
   }
 
+  // UPDATED: Now accepts deadline and priorityLevel for editing tasks
   Future<void> updateTask({
     required String id,
     required String title,
     required String subjectId,
+    DateTime? deadline,
+    String priorityLevel = 'Medium',
   }) async {
     final int index = _tasks.indexWhere((StudyTask task) => task.id == id);
     if (index == -1) {
@@ -128,6 +156,8 @@ class AppState extends ChangeNotifier {
     _tasks[index] = _tasks[index].copyWith(
       title: trimmed,
       subjectId: subjectId,
+      deadline: deadline,
+      priorityLevel: priorityLevel,
     );
     await _save();
     notifyListeners();
@@ -189,8 +219,18 @@ class AppState extends ChangeNotifier {
   }
 
   void _seedDefaults() {
-    final Subject math = Subject(id: _newId(), name: 'Mathematics');
-    final Subject biology = Subject(id: _newId(), name: 'Biology');
+    final Subject math = Subject(
+      id: _newId(),
+      name: 'Mathematics',
+      teacherName: 'Prof. Ahmed',
+      studyHours: 4,
+    );
+    final Subject biology = Subject(
+      id: _newId(),
+      name: 'Biology',
+      teacherName: 'Dr. Sarah',
+      studyHours: 3,
+    );
 
     _subjects
       ..clear()
@@ -203,6 +243,8 @@ class AppState extends ChangeNotifier {
           id: _newId(),
           title: 'Practice derivatives',
           subjectId: math.id,
+          priorityLevel: 'High',
+          deadline: DateTime.now().add(const Duration(days: 2)),
         ),
         StudyTask(
           id: _newId(),
@@ -235,5 +277,8 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  String _newId() => DateTime.now().microsecondsSinceEpoch.toString();
+  String _newId() {
+    _idCounter++;
+    return '${DateTime.now().microsecondsSinceEpoch}_$_idCounter';
+  }
 }
