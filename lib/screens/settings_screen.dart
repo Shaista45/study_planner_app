@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_study_planner/state/app_state.dart';
 import 'package:smart_study_planner/theme/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
-  // FIX: Added the scrollController parameter here
   const SettingsScreen({super.key, this.scrollController});
-
   final ScrollController? scrollController;
 
   @override
@@ -15,8 +15,112 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _darkModeEnabled = false;
 
+  // UPDATED: Added a method to show the edit profile popup
+  void _showEditProfileDialog(BuildContext context, AppState appState) {
+    final TextEditingController nameController = TextEditingController(
+      text: appState.userName,
+    );
+    final TextEditingController roleController = TextEditingController(
+      text: appState.userRole,
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Edit Profile',
+            style: TextStyle(
+              color: AppColors.deepBrown,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  labelStyle: const TextStyle(color: AppColors.primaryOlive),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryOlive,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: roleController,
+                decoration: InputDecoration(
+                  labelText: 'Department / Role',
+                  labelStyle: const TextStyle(color: AppColors.primaryOlive),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: AppColors.primaryOlive,
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryOlive,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                appState.updateProfile(
+                  nameController.text.trim(),
+                  roleController.text.trim(),
+                );
+                Navigator.pop(context);
+              },
+              child: const Text(
+                'Save',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final AppState appState = context.watch<AppState>();
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: SafeArea(
@@ -47,7 +151,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             Expanded(
               child: SingleChildScrollView(
-                // FIX: Assigned the controller to the scroll view here
                 controller: widget.scrollController,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -87,17 +190,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  'Student Profile',
-                                  style: TextStyle(
+                                // UPDATED: Bound to global AppState
+                                Text(
+                                  appState.userName,
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 20,
                                     color: AppColors.deepBrown,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
+                                // UPDATED: Bound to global AppState
                                 Text(
-                                  'Computer Science Dept.',
+                                  appState.userRole,
                                   style: TextStyle(
                                     color: AppColors.deepBrown.withValues(
                                       alpha: 0.6,
@@ -108,8 +213,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ],
                             ),
                           ),
+                          // UPDATED: Attached to the new dialog function
                           IconButton(
-                            onPressed: () {},
+                            onPressed: () =>
+                                _showEditProfileDialog(context, appState),
                             icon: const Icon(
                               Icons.edit_rounded,
                               color: AppColors.primaryOlive,

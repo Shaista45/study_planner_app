@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'package:smart_study_planner/services/notification_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_study_planner/models/models.dart';
@@ -8,8 +8,16 @@ class AppState extends ChangeNotifier {
   static const String _subjectsKey = 'subjects_v1';
   static const String _tasksKey = 'tasks_v1';
 
+  // UPDATED: Added keys for Profile Data
+  static const String _userNameKey = 'user_name_v1';
+  static const String _userRoleKey = 'user_role_v1';
+
   final List<Subject> _subjects = <Subject>[];
   final List<StudyTask> _tasks = <StudyTask>[];
+
+  // UPDATED: Profile Variables
+  String _userName = 'Student Profile';
+  String _userRole = 'Computer Science Dept.';
 
   String? _selectedSubjectId;
   String? _selectedTaskId;
@@ -24,6 +32,10 @@ class AppState extends ChangeNotifier {
       _tasks.where((StudyTask task) => !task.isCompleted).toList();
   List<StudyTask> get completedTasks =>
       _tasks.where((StudyTask task) => task.isCompleted).toList();
+
+  // UPDATED: Profile Getters
+  String get userName => _userName;
+  String get userRole => _userRole;
 
   Subject? get selectedSubject {
     if (_subjects.isEmpty) {
@@ -56,6 +68,10 @@ class AppState extends ChangeNotifier {
     final String? savedSubjects = prefs.getString(_subjectsKey);
     final String? savedTasks = prefs.getString(_tasksKey);
 
+    // UPDATED: Load Profile Data
+    _userName = prefs.getString(_userNameKey) ?? 'Student Profile';
+    _userRole = prefs.getString(_userRoleKey) ?? 'Computer Science Dept.';
+
     if (savedSubjects != null && savedSubjects.isNotEmpty) {
       final List<dynamic> decoded = jsonDecode(savedSubjects) as List<dynamic>;
       _subjects
@@ -87,7 +103,17 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // UPDATED: Now accepts teacherName and studyHours
+  // UPDATED: Method to update and save Profile
+  Future<void> updateProfile(String name, String role) async {
+    _userName = name.isEmpty ? 'Student Profile' : name;
+    _userRole = role.isEmpty ? 'Computer Science Dept.' : role;
+    notifyListeners();
+
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userNameKey, _userName);
+    await prefs.setString(_userRoleKey, _userRole);
+  }
+
   Future<void> addSubject(
     String name, {
     String? teacherName,
@@ -110,7 +136,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // UPDATED: Now accepts deadline and priorityLevel
   Future<void> addTask({
     required String title,
     required String subjectId,
@@ -122,20 +147,40 @@ class AppState extends ChangeNotifier {
       return;
     }
 
+    // Capture the ID so we can use it for the notification
+    final String newTaskId = _newId();
+
     _tasks.add(
       StudyTask(
-        id: _newId(),
+        id: newTaskId,
         title: trimmed,
         subjectId: subjectId,
         deadline: deadline,
         priorityLevel: priorityLevel,
       ),
     );
+
+    // NEW NOTIFICATION CODE: Schedule an alarm if a deadline was set
+    if (deadline != null) {
+      // Subtract 1 hour from the deadline to act as a reminder
+      final DateTime reminderTime = deadline.subtract(const Duration(hours: 1));
+
+      try {
+        await NotificationService().scheduleNotification(
+          id: newTaskId.hashCode, // Convert String ID to int
+          title: 'Study Reminder',
+          body: 'Your task "$trimmed" is due in 1 hour!',
+          scheduledDate: reminderTime,
+        );
+      } catch (e) {
+        debugPrint('Failed to schedule notification: $e');
+      }
+    }
+
     await _save();
     notifyListeners();
   }
 
-  // UPDATED: Now accepts deadline and priorityLevel for editing tasks
   Future<void> updateTask({
     required String id,
     required String title,
@@ -159,6 +204,25 @@ class AppState extends ChangeNotifier {
       deadline: deadline,
       priorityLevel: priorityLevel,
     );
+
+    // If the task is updated, also update the notification schedule
+    if (deadline != null) {
+      final DateTime reminderTime = deadline.subtract(const Duration(hours: 1));
+      try {
+        await NotificationService().scheduleNotification(
+          id: id.hashCode,
+          title: 'Study Reminder',
+          body: 'Your task "$trimmed" is due in 1 hour!',
+          scheduledDate: reminderTime,
+        );
+      } catch (e) {
+        debugPrint('Failed to update notification: $e');
+      }
+    } else {
+      // If deadline was removed, cancel any existing notification
+      await NotificationService().cancelNotification(id.hashCode);
+    }
+
     await _save();
     notifyListeners();
   }
@@ -170,6 +234,10 @@ class AppState extends ChangeNotifier {
     }
 
     _tasks[index] = _tasks[index].copyWith(isCompleted: true);
+
+    // Cancel the notification since the task is done
+    await NotificationService().cancelNotification(id.hashCode);
+
     await _save();
     notifyListeners();
   }
