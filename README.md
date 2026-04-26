@@ -109,7 +109,7 @@ lib/
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/smart_study_planner.git
+git clone https://github.com/Shaista45/study_planner_app.git
 
 # Navigate into the project
 cd smart_study_planner
