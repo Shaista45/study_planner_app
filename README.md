@@ -112,7 +112,7 @@ lib/
 git clone https://github.com/Shaista45/study_planner_app.git
 
 # Navigate into the project
-cd smart_study_planner
+cd study_planner_app
 
 # Install dependencies
 flutter pub get
