@@ -55,17 +55,27 @@ class NotificationsScreen extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.notifications_off_rounded,
-                            size: 64,
-                            color: Colors.grey.shade300,
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryOlive.withValues(
+                                alpha: 0.1,
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.notifications_off_rounded,
+                              size: 48,
+                              color: AppColors.primaryOlive,
+                            ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 24),
                           Text(
                             'No upcoming reminders.',
                             style: TextStyle(
-                              color: AppColors.deepBrown.withValues(alpha: 0.5),
+                              color: AppColors.deepBrown.withValues(alpha: 0.6),
                               fontSize: 16,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
@@ -89,19 +99,25 @@ class NotificationsScreen extends StatelessWidget {
 
                         Color iconColor;
                         Color bgColor;
+                        Color borderColor;
                         String timeText;
                         IconData icon;
 
+                        // Apply Theme Colors based on Urgency
                         if (isOverdue) {
-                          iconColor = Colors.red;
-                          bgColor = Colors.red.withValues(alpha: 0.1);
+                          iconColor = Colors.red.shade700;
+                          bgColor = Colors.red.shade50;
+                          borderColor = Colors.red.shade200;
                           timeText =
-                              'Overdue by ${difference.inHours.abs()} hours';
+                              'Overdue by ${difference.inHours.abs()} hrs';
                           icon = Icons.warning_rounded;
                         } else if (isDueToday) {
                           iconColor = AppColors.accentOrange;
                           bgColor = AppColors.accentOrange.withValues(
                             alpha: 0.1,
+                          );
+                          borderColor = AppColors.accentOrange.withValues(
+                            alpha: 0.3,
                           );
                           timeText = 'Due in ${difference.inHours} hours';
                           icon = Icons.access_time_filled_rounded;
@@ -110,8 +126,18 @@ class NotificationsScreen extends StatelessWidget {
                           bgColor = AppColors.primaryOlive.withValues(
                             alpha: 0.1,
                           );
+                          borderColor = Colors.transparent;
                           timeText = 'Due in ${difference.inDays} days';
                           icon = Icons.event_rounded;
+                        }
+
+                        // Split Title and Description
+                        String displayTitle = task.title;
+                        String displayDesc = '';
+                        if (task.title.contains(' - ')) {
+                          final parts = task.title.split(' - ');
+                          displayTitle = parts.first;
+                          displayDesc = parts.sublist(1).join(' - ');
                         }
 
                         return Container(
@@ -128,12 +154,15 @@ class NotificationsScreen extends StatelessWidget {
                               ),
                             ],
                             border: Border.all(
-                              color: isOverdue
-                                  ? Colors.red.shade100
-                                  : Colors.transparent,
+                              color: isOverdue || isDueToday
+                                  ? borderColor
+                                  : Colors.grey.shade100,
+                              width: 1.5,
                             ),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment
+                                .start, // Align to top for better description layout
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(12),
@@ -149,7 +178,7 @@ class NotificationsScreen extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      task.title,
+                                      displayTitle,
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 16,
@@ -161,10 +190,45 @@ class NotificationsScreen extends StatelessWidget {
                                       timeText,
                                       style: TextStyle(
                                         color: iconColor,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: FontWeight.w700,
                                         fontSize: 13,
                                       ),
                                     ),
+
+                                    // Add the Beautiful Description Box if it exists
+                                    if (displayDesc.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.secondaryYellow
+                                              .withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          border: const Border(
+                                            left: BorderSide(
+                                              color: AppColors.secondaryYellow,
+                                              width: 3,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          displayDesc,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.deepBrown
+                                                .withValues(alpha: 0.7),
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),

@@ -2,41 +2,231 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_study_planner/models/models.dart';
 import 'package:smart_study_planner/state/app_state.dart';
-import 'package:smart_study_planner/screens/subject_detail_screen.dart';
 import 'package:smart_study_planner/theme/app_colors.dart';
-import 'package:smart_study_planner/widgets/animated_scale_button.dart';
-import 'package:smart_study_planner/widgets/note_input_field.dart';
+import 'package:smart_study_planner/screens/subject_detail_screen.dart'; // NEW IMPORT
 
-class SubjectsScreen extends StatelessWidget {
-  // UPDATED: Added scrollController parameter
-  const SubjectsScreen({super.key, this.scrollController});
+class SubjectsScreen extends StatefulWidget {
+  const SubjectsScreen({super.key});
 
-  final ScrollController? scrollController;
+  @override
+  State<SubjectsScreen> createState() => _SubjectsScreenState();
+}
 
-  void _showAddSubjectSheet(BuildContext context) {
+class _SubjectsScreenState extends State<SubjectsScreen> {
+  // --- BOTTOM SHEET FOR ADDING OR EDITING ---
+  void _showSubjectSheet(
+    BuildContext context,
+    AppState appState, {
+    Subject? subjectToEdit,
+  }) {
+    final TextEditingController nameController = TextEditingController(
+      text: subjectToEdit?.name ?? '',
+    );
+    final TextEditingController hoursController = TextEditingController(
+      text: subjectToEdit?.studyHours != null
+          ? subjectToEdit!.studyHours.toString()
+          : '',
+    );
+    final TextEditingController teacherController = TextEditingController(
+      text: subjectToEdit?.teacherName ?? '',
+    );
+    final bool isEditing = subjectToEdit != null;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return const _AddSubjectForm();
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 24,
+            right: 24,
+            top: 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isEditing ? 'Edit Subject' : 'New Subject',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.deepBrown,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Subject Name
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  labelText: 'Subject Name',
+                  labelStyle: const TextStyle(color: AppColors.primaryOlive),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Teacher Name
+              TextField(
+                controller: teacherController,
+                decoration: InputDecoration(
+                  labelText: 'Teacher Name (Optional)',
+                  labelStyle: const TextStyle(color: AppColors.primaryOlive),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Study Hours
+              TextField(
+                controller: hoursController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Target Study Hours / Week (Optional)',
+                  labelStyle: const TextStyle(color: AppColors.primaryOlive),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Save Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryOlive,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: () {
+                    final name = nameController.text.trim();
+                    if (name.isEmpty) return;
+
+                    final teacher = teacherController.text.trim();
+                    final hours = int.tryParse(hoursController.text.trim());
+
+                    if (isEditing) {
+                      appState.updateSubject(
+                        id: subjectToEdit.id,
+                        newName: name,
+                        studyHours: hours,
+                        teacherName: teacher.isNotEmpty ? teacher : null,
+                      );
+                    } else {
+                      appState.addSubject(
+                        name,
+                        hours: hours ?? 0,
+                        teacherName: teacher.isNotEmpty ? teacher : null,
+                      );
+                    }
+                    Navigator.pop(context); // Close the bottom sheet
+                  },
+                  child: Text(
+                    isEditing ? 'Save Changes' : 'Add Subject',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
       },
+    );
+  }
+
+  // --- DELETE CONFIRMATION ---
+  void _showDeleteConfirmation(
+    BuildContext context,
+    AppState appState,
+    Subject subject,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Delete Subject?',
+          style: TextStyle(
+            color: AppColors.deepBrown,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${subject.name}"? This will also delete ALL tasks associated with this subject.',
+          style: const TextStyle(color: AppColors.deepBrown, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade50,
+              foregroundColor: Colors.red,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () {
+              appState.deleteSubject(subject.id);
+              Navigator.pop(ctx);
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final AppState appState = context.watch<AppState>();
-    final List<Subject> subjects = appState.subjects;
+    final appState = context.watch<AppState>();
+    final subjects = appState.subjects;
 
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.secondaryYellow,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        onPressed: () => _showAddSubjectSheet(context),
+        onPressed: () => _showSubjectSheet(context, appState),
         icon: const Icon(Icons.add, color: AppColors.deepBrown),
         label: const Text(
-          "Add Subject",
+          "New Subject",
           style: TextStyle(
             color: AppColors.deepBrown,
             fontWeight: FontWeight.bold,
@@ -47,18 +237,21 @@ class SubjectsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 1. HEADER
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
               child: Row(
                 children: [
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                    color: AppColors.deepBrown,
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: AppColors.deepBrown,
+                    ),
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'My Subjects',
+                    'Manage Subjects',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                       color: AppColors.deepBrown,
@@ -67,32 +260,32 @@ class SubjectsScreen extends StatelessWidget {
                 ],
               ),
             ),
+
+            // 2. SUBJECTS LIST
             Expanded(
               child: subjects.isEmpty
                   ? Center(
                       child: Text(
-                        'No subjects added yet.\nTap + to create one!',
-                        textAlign: TextAlign.center,
+                        'No subjects added yet.',
                         style: TextStyle(
-                          color: AppColors.deepBrown.withValues(alpha: 0.6),
+                          color: AppColors.deepBrown.withValues(alpha: 0.5),
                           fontSize: 16,
                         ),
                       ),
                     )
                   : ListView.builder(
-                      // UPDATED: Passed the scroll controller to the list view
-                      controller: scrollController,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
+                        horizontal: 24,
                         vertical: 8,
                       ),
                       itemCount: subjects.length,
                       itemBuilder: (context, index) {
                         final Subject subject = subjects[index];
-                        final int pendingTasks = appState.pendingCountBySubject(
-                          subject.id,
-                        );
+                        final int taskCount = appState
+                            .tasksForSubject(subject.id)
+                            .length;
 
+                        // NEW: Wrapped in an InkWell to make the whole card clickable
                         return InkWell(
                           onTap: () {
                             Navigator.of(context).push(
@@ -104,110 +297,132 @@ class SubjectsScreen extends StatelessWidget {
                           },
                           borderRadius: BorderRadius.circular(20),
                           child: Container(
-                            margin: const EdgeInsets.only(bottom: 14),
+                            margin: const EdgeInsets.only(bottom: 16),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
+                              border: const Border(
+                                left: BorderSide(
+                                  color: AppColors.primaryOlive,
+                                  width: 4,
+                                ),
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.04),
+                                  color: Colors.black.withValues(alpha: 0.03),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
-                              border: Border.all(
-                                color: AppColors.primaryOlive.withValues(
-                                  alpha: 0.3,
-                                ),
-                                width: 1,
-                              ),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
+                                // Subject Info
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
                                         subject.name,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.deepBrown,
-                                            ),
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: pendingTasks > 0
-                                            ? AppColors.accentOrange.withValues(
-                                                alpha: 0.2,
-                                              )
-                                            : AppColors.primaryOlive.withValues(
-                                                alpha: 0.2,
-                                              ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        '$pendingTasks Pending',
-                                        style: TextStyle(
-                                          color: pendingTasks > 0
-                                              ? AppColors.accentOrange
-                                              : AppColors.primaryOlive,
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.bold,
-                                          fontSize: 12,
+                                          fontSize: 18,
+                                          color: AppColors.deepBrown,
                                         ),
                                       ),
-                                    ),
-                                  ],
+
+                                      // Display Teacher Name if it exists
+                                      if (subject.teacherName != null &&
+                                          subject.teacherName!.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.person_rounded,
+                                              size: 14,
+                                              color: Colors.grey,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              subject.teacherName!,
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.secondaryYellow
+                                                  .withValues(alpha: 0.3),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              '$taskCount Tasks',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                                color: AppColors.deepBrown,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          if (subject.studyHours != null &&
+                                              subject.studyHours! > 0)
+                                            Text(
+                                              '${subject.studyHours} hrs/wk',
+                                              style: TextStyle(
+                                                color: AppColors.deepBrown
+                                                    .withValues(alpha: 0.6),
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 12),
+
+                                // Action Buttons (Edit & Delete)
                                 Row(
                                   children: [
-                                    const Icon(
-                                      Icons.person_outline,
-                                      size: 18,
-                                      color: AppColors.primaryOlive,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      subject.teacherName?.isNotEmpty == true
-                                          ? subject.teacherName!
-                                          : 'Teacher not set',
-                                      style: TextStyle(
-                                        color: AppColors.deepBrown.withValues(
-                                          alpha: 0.7,
-                                        ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.edit_rounded,
+                                        color: AppColors.primaryOlive,
+                                        size: 22,
+                                      ),
+                                      onPressed: () => _showSubjectSheet(
+                                        context,
+                                        appState,
+                                        subjectToEdit: subject,
                                       ),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.schedule_rounded,
-                                      size: 18,
-                                      color: AppColors.primaryOlive,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      subject.studyHours != null
-                                          ? '${subject.studyHours} Hours/Week'
-                                          : 'Hours not set',
-                                      style: TextStyle(
-                                        color: AppColors.deepBrown.withValues(
-                                          alpha: 0.7,
-                                        ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        color: Colors.redAccent,
+                                        size: 22,
+                                      ),
+                                      onPressed: () => _showDeleteConfirmation(
+                                        context,
+                                        appState,
+                                        subject,
                                       ),
                                     ),
                                   ],
@@ -218,153 +433,6 @@ class SubjectsScreen extends StatelessWidget {
                         );
                       },
                     ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// -----------------------------------------------------------------------------
-// Form Widget for adding a new subject (pops up from the bottom)
-// -----------------------------------------------------------------------------
-class _AddSubjectForm extends StatefulWidget {
-  const _AddSubjectForm();
-
-  @override
-  State<_AddSubjectForm> createState() => _AddSubjectFormState();
-}
-
-class _AddSubjectFormState extends State<_AddSubjectForm> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _teacherController = TextEditingController();
-  final TextEditingController _hoursController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _teacherController.dispose();
-    _hoursController.dispose();
-    super.dispose();
-  }
-
-  void _saveSubject() {
-    final String name = _nameController.text.trim();
-    if (name.isEmpty) return;
-
-    final String teacher = _teacherController.text.trim();
-    final int? hours = int.tryParse(_hoursController.text.trim());
-
-    // Save to global state
-    context.read<AppState>().addSubject(
-      name,
-      teacherName: teacher.isNotEmpty ? teacher : null,
-      studyHours: hours,
-    );
-
-    // Close the bottom sheet
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // This padding ensures the form moves up when the keyboard opens
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return Container(
-      padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 50,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Add New Subject',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.deepBrown,
-              ),
-            ),
-            const SizedBox(height: 20),
-            NoteInputField(
-              label: 'Subject Name (Required)',
-              controller: _nameController,
-              hint: 'e.g., Mathematics',
-            ),
-            const SizedBox(height: 16),
-            NoteInputField(
-              label: 'Teacher Name (Optional)',
-              controller: _teacherController,
-              hint: 'e.g., Prof. Ahmed',
-            ),
-            const SizedBox(height: 16),
-            // Custom input for numbers
-            Text(
-              'Study Hours / Week (Optional)',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.deepBrown,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _hoursController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: 'e.g., 4',
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: AnimatedScaleButton(
-                onTap: _saveSubject,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryOlive,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'Save Subject',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
             ),
           ],
         ),

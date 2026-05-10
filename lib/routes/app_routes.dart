@@ -8,12 +8,17 @@ import 'package:smart_study_planner/screens/signup_screen.dart';
 import 'package:smart_study_planner/screens/splash_screen.dart';
 import 'package:smart_study_planner/screens/study_timetable_screen.dart';
 import 'package:smart_study_planner/screens/subjects_screen.dart';
-import 'package:smart_study_planner/screens/task_extras_screens.dart';
+
+// FIX: Added 'hide SearchTasksScreen' so Flutter ignores the old placeholder!
+import 'package:smart_study_planner/screens/task_extras_screens.dart'
+    hide SearchTasksScreen;
+
 import 'package:smart_study_planner/screens/weekly_overview_screen.dart';
+import 'package:smart_study_planner/screens/search_tasks_screen.dart';
 
 class AppRoutes {
   static const String shell = '/app';
-  static const String splash = '/';
+  static const String splash = '/splash';
   static const String login = '/login';
   static const String signup = '/signup';
   static const String forgotPassword = '/forgot-password';
@@ -40,23 +45,23 @@ class AppRoutes {
   static Map<String, WidgetBuilder> getRoutes() {
     return <String, WidgetBuilder>{
       splash: (_) => const SplashScreen(),
-      shell: (_) => const AppShell(),
+      shell: (_) => AppShell(),
       login: (_) => const LoginScreen(),
       signup: (_) => const SignupScreen(),
       forgotPassword: (_) => const ForgotPasswordScreen(),
       editProfile: (_) => const EditProfileScreen(),
-      dashboard: (_) => const AppShell(initialIndex: 0),
-      addTask: (_) => const AppShell(initialIndex: 1),
+      dashboard: (_) => AppShell(initialIndex: 0),
+      addTask: (_) => AppShell(initialIndex: 1),
       editTask: (_) => const EditTaskScreen(),
       completedTasks: (_) => const CompletedTasksScreen(),
       addReminder: (_) => const AddReminderScreen(),
       searchTasks: (_) => const SearchTasksScreen(),
-      subjects: (_) => const SubjectsScreen(),
+      subjects: (_) => SubjectsScreen(),
       studyTimetable: (_) => const StudyTimetableScreen(),
-      studyProgress: (_) => const AppShell(initialIndex: 2),
+      studyProgress: (_) => AppShell(initialIndex: 2),
       weeklyOverview: (_) => const WeeklyOverviewScreen(),
       notifications: (_) => const NotificationsScreen(),
-      settings: (_) => const AppShell(initialIndex: 3),
+      settings: (_) => AppShell(initialIndex: 3),
     };
   }
 }

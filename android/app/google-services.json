@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "881348166521",
+    "project_id": "smart-study-planner-23497",
+    "storage_bucket": "smart-study-planner-23497.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:881348166521:android:3a2cf658e71fb5d3a2e5a8",
+        "android_client_info": {
+          "package_name": "com.example.smart_study_planner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC_8ZQ84i-VMFMVDMoexYcgFjxMF1rnbWc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

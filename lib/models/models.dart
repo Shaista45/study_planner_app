@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class Subject {
   Subject({
     required this.id,
@@ -102,4 +104,20 @@ class StudyTask {
       'priorityLevel': priorityLevel,
     };
   }
+}
+
+class StudySession {
+  final String id;
+  final String subjectId;
+  final int dayOfWeek; // 1 = Monday, 7 = Sunday
+  final TimeOfDay startTime;
+  final TimeOfDay endTime;
+
+  StudySession({
+    required this.id,
+    required this.subjectId,
+    required this.dayOfWeek,
+    required this.startTime,
+    required this.endTime,
+  });
 }

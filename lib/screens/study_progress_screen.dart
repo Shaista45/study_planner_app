@@ -5,7 +5,6 @@ import 'package:smart_study_planner/state/app_state.dart';
 import 'package:smart_study_planner/theme/app_colors.dart';
 
 class StudyProgressScreen extends StatelessWidget {
-  // FIX 1: Add the scrollController parameter here
   const StudyProgressScreen({super.key, this.scrollController});
 
   final ScrollController? scrollController;
@@ -29,7 +28,7 @@ class StudyProgressScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // 1. HEADER (Fixed)
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
               child: Row(
@@ -51,9 +50,90 @@ class StudyProgressScreen extends StatelessWidget {
               ),
             ),
 
+            // 2. MAIN PROGRESS CARD (Moved OUT of the scroll view so it stays fixed!)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryOlive,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryOlive.withValues(alpha: 0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      height: 100,
+                      width: 100,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          CircularProgressIndicator(
+                            value: overallProgress,
+                            strokeWidth: 10,
+                            backgroundColor: Colors.white.withValues(
+                              alpha: 0.2,
+                            ),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppColors.secondaryYellow,
+                            ),
+                          ),
+                          Center(
+                            child: Text(
+                              '$progressPercent%',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Overall Completion',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _StatBadge(
+                            label: '$completedTasks Completed',
+                            color: AppColors.secondaryYellow,
+                            textColor: AppColors.deepBrown,
+                          ),
+                          const SizedBox(height: 8),
+                          _StatBadge(
+                            label: '$pendingTasks Pending',
+                            color: Colors.white.withValues(alpha: 0.2),
+                            textColor: Colors.white,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 3. SUBJECT BREAKDOWN (Wrapped in Expanded so ONLY this part scrolls)
             Expanded(
               child: SingleChildScrollView(
-                // FIX 2: Assign the controller to the scroll view here
                 controller: scrollController,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
@@ -62,88 +142,6 @@ class StudyProgressScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Main Progress Card
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryOlive,
-                        borderRadius: BorderRadius.circular(28),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryOlive.withValues(
-                              alpha: 0.3,
-                            ),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          SizedBox(
-                            height: 100,
-                            width: 100,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                CircularProgressIndicator(
-                                  value: overallProgress,
-                                  strokeWidth: 10,
-                                  backgroundColor: Colors.white.withValues(
-                                    alpha: 0.2,
-                                  ),
-                                  valueColor:
-                                      const AlwaysStoppedAnimation<Color>(
-                                        AppColors.secondaryYellow,
-                                      ),
-                                ),
-                                Center(
-                                  child: Text(
-                                    '$progressPercent%',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 24,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Overall Completion',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                _StatBadge(
-                                  label: '$completedTasks Completed',
-                                  color: AppColors.secondaryYellow,
-                                  textColor: AppColors.deepBrown,
-                                ),
-                                const SizedBox(height: 8),
-                                _StatBadge(
-                                  label: '$pendingTasks Pending',
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  textColor: Colors.white,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Subject Breakdown Section
                     Text(
                       'Subject Breakdown',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -253,6 +251,9 @@ class StudyProgressScreen extends StatelessWidget {
                           ),
                         );
                       }),
+                    const SizedBox(
+                      height: 24,
+                    ), // Bottom padding for smooth scrolling
                   ],
                 ),
               ),
