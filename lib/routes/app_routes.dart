@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:smart_study_planner/screens/app_shell.dart';
+import 'package:smart_study_planner/screens/auth_screen.dart';
 import 'package:smart_study_planner/screens/edit_task_screen.dart';
 import 'package:smart_study_planner/screens/forgot_password_screen.dart';
-import 'package:smart_study_planner/screens/login_screen.dart';
 import 'package:smart_study_planner/screens/notifications_screen.dart';
 import 'package:smart_study_planner/screens/signup_screen.dart';
 import 'package:smart_study_planner/screens/splash_screen.dart';
@@ -46,7 +46,7 @@ class AppRoutes {
     return <String, WidgetBuilder>{
       splash: (_) => const SplashScreen(),
       shell: (_) => AppShell(),
-      login: (_) => const LoginScreen(),
+      login: (_) => const AuthScreen(),
       signup: (_) => const SignupScreen(),
       forgotPassword: (_) => const ForgotPasswordScreen(),
       editProfile: (_) => const EditProfileScreen(),

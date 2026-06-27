@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:smart_study_planner/models/models.dart';
 import 'package:smart_study_planner/state/app_state.dart';
 import 'package:smart_study_planner/theme/app_colors.dart';
-import 'package:smart_study_planner/screens/subject_detail_screen.dart'; // NEW IMPORT
+import 'package:smart_study_planner/screens/subject_detail_screen.dart';
 
 class SubjectsScreen extends StatefulWidget {
   const SubjectsScreen({super.key});
@@ -23,8 +23,8 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
       text: subjectToEdit?.name ?? '',
     );
     final TextEditingController hoursController = TextEditingController(
-      text: subjectToEdit?.studyHours != null
-          ? subjectToEdit!.studyHours.toString()
+      text: subjectToEdit?.studyHours != null && subjectToEdit!.studyHours! > 0
+          ? subjectToEdit.studyHours.toString()
           : '',
     );
     final TextEditingController teacherController = TextEditingController(
@@ -61,14 +61,20 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Subject Name
+              // Subject Name Text Field
               TextField(
                 controller: nameController,
+                textCapitalization: TextCapitalization
+                    .words, // Capitalizes course initials automatically
                 decoration: InputDecoration(
                   labelText: 'Subject Name',
                   labelStyle: const TextStyle(color: AppColors.primaryOlive),
                   filled: true,
                   fillColor: Colors.grey.shade50,
+                  prefixIcon: const Icon(
+                    Icons.book_outlined,
+                    color: AppColors.primaryOlive,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
@@ -77,14 +83,19 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Teacher Name
+              // Teacher Name Text Field
               TextField(
                 controller: teacherController,
+                textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
                   labelText: 'Teacher Name (Optional)',
                   labelStyle: const TextStyle(color: AppColors.primaryOlive),
                   filled: true,
                   fillColor: Colors.grey.shade50,
+                  prefixIcon: const Icon(
+                    Icons.person_outline_rounded,
+                    color: AppColors.primaryOlive,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
@@ -93,7 +104,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Study Hours
+              // Study Hours Text Field
               TextField(
                 controller: hoursController,
                 keyboardType: TextInputType.number,
@@ -102,6 +113,10 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                   labelStyle: const TextStyle(color: AppColors.primaryOlive),
                   filled: true,
                   fillColor: Colors.grey.shade50,
+                  prefixIcon: const Icon(
+                    Icons.hourglass_empty_rounded,
+                    color: AppColors.primaryOlive,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none,
@@ -110,7 +125,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Save Button
+              // Save Action Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -121,28 +136,47 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     final name = nameController.text.trim();
-                    if (name.isEmpty) return;
+                    if (name.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Subject name cannot be empty'),
+                        ),
+                      );
+                      return;
+                    }
 
                     final teacher = teacherController.text.trim();
                     final hours = int.tryParse(hoursController.text.trim());
 
-                    if (isEditing) {
-                      appState.updateSubject(
-                        id: subjectToEdit.id,
-                        newName: name,
-                        studyHours: hours,
-                        teacherName: teacher.isNotEmpty ? teacher : null,
-                      );
-                    } else {
-                      appState.addSubject(
-                        name,
-                        hours: hours ?? 0,
-                        teacherName: teacher.isNotEmpty ? teacher : null,
-                      );
+                    // Close keyboard and sheet immediately to provide rapid UX transition
+                    Navigator.pop(sheetContext);
+
+                    try {
+                      if (isEditing) {
+                        await appState.updateSubject(
+                          id: subjectToEdit.id,
+                          newName: name,
+                          studyHours: hours,
+                          teacherName: teacher.isNotEmpty ? teacher : null,
+                        );
+                      } else {
+                        await appState.addSubject(
+                          name,
+                          hours: hours ?? 0,
+                          teacherName: teacher.isNotEmpty ? teacher : null,
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to persist change: $e'),
+                          ),
+                        );
+                      }
                     }
-                    Navigator.pop(context); // Close the bottom sheet
                   },
                   child: Text(
                     isEditing ? 'Save Changes' : 'Add Subject',
@@ -200,9 +234,9 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () {
-              appState.deleteSubject(subject.id);
-              Navigator.pop(ctx);
+            onPressed: () async {
+              Navigator.pop(ctx); // Close dialog window first
+              await appState.deleteSubject(subject.id);
             },
             child: const Text(
               'Delete',
@@ -237,7 +271,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. HEADER
+            // 1. HEADER NAV STRIP
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
               child: Row(
@@ -261,7 +295,7 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
               ),
             ),
 
-            // 2. SUBJECTS LIST
+            // 2. SUBJECTS DYNAMIC SCROLL CONTAINER
             Expanded(
               child: subjects.isEmpty
                   ? Center(
@@ -285,149 +319,159 @@ class _SubjectsScreenState extends State<SubjectsScreen> {
                             .tasksForSubject(subject.id)
                             .length;
 
-                        // NEW: Wrapped in an InkWell to make the whole card clickable
-                        return InkWell(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    SubjectDetailScreen(subjectId: subject.id),
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
                               borderRadius: BorderRadius.circular(20),
-                              border: const Border(
-                                left: BorderSide(
-                                  color: AppColors.primaryOlive,
-                                  width: 4,
-                                ),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.03),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                // Subject Info
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        subject.name,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
-                                          color: AppColors.deepBrown,
-                                        ),
-                                      ),
-
-                                      // Display Teacher Name if it exists
-                                      if (subject.teacherName != null &&
-                                          subject.teacherName!.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.person_rounded,
-                                              size: 14,
-                                              color: Colors.grey,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              subject.teacherName!,
-                                              style: const TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.secondaryYellow
-                                                  .withValues(alpha: 0.3),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              '$taskCount Tasks',
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12,
-                                                color: AppColors.deepBrown,
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          if (subject.studyHours != null &&
-                                              subject.studyHours! > 0)
-                                            Text(
-                                              '${subject.studyHours} hrs/wk',
-                                              style: TextStyle(
-                                                color: AppColors.deepBrown
-                                                    .withValues(alpha: 0.6),
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => SubjectDetailScreen(
+                                      subjectId: subject.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    left: BorderSide(
+                                      color: AppColors.primaryOlive,
+                                      width: 4,
+                                    ),
                                   ),
                                 ),
-
-                                // Action Buttons (Edit & Delete)
-                                Row(
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.edit_rounded,
-                                        color: AppColors.primaryOlive,
-                                        size: 22,
-                                      ),
-                                      onPressed: () => _showSubjectSheet(
-                                        context,
-                                        appState,
-                                        subjectToEdit: subject,
+                                    // Primary Meta Text Structure
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            subject.name,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                              color: AppColors.deepBrown,
+                                            ),
+                                          ),
+                                          if (subject.teacherName != null &&
+                                              subject
+                                                  .teacherName!
+                                                  .isNotEmpty) ...[
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.person_rounded,
+                                                  size: 14,
+                                                  color: Colors.grey,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  subject.teacherName!,
+                                                  style: const TextStyle(
+                                                    color: Colors.grey,
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors
+                                                      .secondaryYellow
+                                                      .withValues(alpha: 0.3),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Text(
+                                                  '$taskCount Tasks',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                    color: AppColors.deepBrown,
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              if (subject.studyHours != null &&
+                                                  subject.studyHours! > 0)
+                                                Text(
+                                                  '${subject.studyHours} hrs/wk',
+                                                  style: TextStyle(
+                                                    color: AppColors.deepBrown
+                                                        .withValues(alpha: 0.6),
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.delete_outline_rounded,
-                                        color: Colors.redAccent,
-                                        size: 22,
-                                      ),
-                                      onPressed: () => _showDeleteConfirmation(
-                                        context,
-                                        appState,
-                                        subject,
-                                      ),
+
+                                    // Local Execution Control Triggers
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.edit_rounded,
+                                            color: AppColors.primaryOlive,
+                                            size: 22,
+                                          ),
+                                          onPressed: () => _showSubjectSheet(
+                                            context,
+                                            appState,
+                                            subjectToEdit: subject,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.delete_outline_rounded,
+                                            color: Colors.redAccent,
+                                            size: 22,
+                                          ),
+                                          onPressed: () =>
+                                              _showDeleteConfirmation(
+                                                context,
+                                                appState,
+                                                subject,
+                                              ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
                         );

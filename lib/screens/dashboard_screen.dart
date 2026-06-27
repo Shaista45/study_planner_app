@@ -57,9 +57,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.secondaryYellow,
+        backgroundColor: activeSubjectsCount == 0
+            ? Colors.grey.shade400
+            : AppColors.secondaryYellow,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         onPressed: () {
+          if (activeSubjectsCount == 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('First add subject to add task'),
+                backgroundColor: AppColors.accentOrange,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
+
           Navigator.of(context).push(
             PageRouteBuilder<void>(
               transitionDuration: const Duration(milliseconds: 360),
@@ -89,11 +102,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           );
         },
-        icon: const Icon(Icons.add, color: AppColors.deepBrown),
-        label: const Text(
+        icon: Icon(
+          Icons.add,
+          color: activeSubjectsCount == 0 ? Colors.white : AppColors.deepBrown,
+        ),
+        label: Text(
           'Add Task',
           style: TextStyle(
-            color: AppColors.deepBrown,
+            color: activeSubjectsCount == 0
+                ? Colors.white
+                : AppColors.deepBrown,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -188,6 +206,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
               const SizedBox(height: 22),
+              const SizedBox(height: 16),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primaryOlive.withValues(alpha: 0.85),
+                      AppColors.primaryOlive,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryOlive.withValues(alpha: 0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.lightbulb_outline_rounded,
+                          color: AppColors.secondaryYellow,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'DAILY MOTIVATION',
+                          style: TextStyle(
+                            color: AppColors.secondaryYellow,
+                            fontFamily: Theme.of(
+                              context,
+                            ).textTheme.bodyLarge?.fontFamily,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      '"${appState.motivationalQuote}"',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                        fontWeight: FontWeight.w500,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.bottomRight,
+                      child: Text(
+                        '- ${appState.quoteAuthor}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:smart_study_planner/screens/add_task_screen.dart';
 import 'package:smart_study_planner/screens/dashboard_screen.dart';
 import 'package:smart_study_planner/screens/settings_screen.dart';
-import 'package:smart_study_planner/screens/study_progress_screen.dart';
+import 'package:smart_study_planner/screens/analytics_screen.dart';
+import 'package:smart_study_planner/state/app_state.dart';
+import 'package:smart_study_planner/theme/app_colors.dart';
 import 'package:smart_study_planner/widgets/soft_bottom_nav_bar.dart';
 
 class AppShell extends StatefulWidget {
@@ -32,7 +35,9 @@ class _AppShellState extends State<AppShell> {
     _tabs = <Widget>[
       DashboardScreen(scrollController: _scrollControllers[0]),
       AddTaskScreen(scrollController: _scrollControllers[1]),
-      StudyProgressScreen(scrollController: _scrollControllers[2]),
+      AnalyticsScreen(
+        scrollController: _scrollControllers[2],
+      ), // ✅ UPDATED TAB INDEX 2
       SettingsScreen(scrollController: _scrollControllers[3]),
     ];
   }
@@ -47,6 +52,9 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    final AppState appState = context.watch<AppState>();
+    final bool canAddTask = appState.subjects.isNotEmpty;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
@@ -82,7 +90,19 @@ class _AppShellState extends State<AppShell> {
         ),
         bottomNavigationBar: SoftBottomNavBar(
           currentIndex: _currentIndex,
+          isAddEnabled: canAddTask,
           onTap: (int index) {
+            if (index == 1 && !canAddTask) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('First add subject to add task'),
+                  backgroundColor: AppColors.accentOrange,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+              return;
+            }
+
             if (index == _currentIndex) {
               _navigatorKeys[index].currentState?.popUntil(
                 (Route<dynamic> route) => route.isFirst,

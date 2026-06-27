@@ -31,6 +31,15 @@
 
   <title>smart_study_planner</title>
   <link rel="manifest" href="manifest.json">
+  <!-- Allow web plugin platform views (e.g. ad iframes) to receive pointer events
+       and prevent Flutter's glass pane from intercepting clicks. -->
+  <style>
+    /* Platform views inserted by plugins use this class */
+    .flt-platform-view { pointer-events: auto; }
+
+    /* Flutter's glass pane can block pointer events; let platform views handle them */
+    #flt-glass-pane { pointer-events: none !important; }
+  </style>
 </head>
 <body>
   <!--

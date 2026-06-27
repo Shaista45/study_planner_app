@@ -5,10 +5,12 @@ class SoftBottomNavBar extends StatelessWidget {
   const SoftBottomNavBar({
     super.key,
     required this.currentIndex,
+    required this.isAddEnabled,
     required this.onTap,
   });
 
   final int currentIndex;
+  final bool isAddEnabled;
   final ValueChanged<int> onTap;
 
   @override
@@ -40,6 +42,13 @@ class SoftBottomNavBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List<Widget>.generate(items.length, (int index) {
             final bool selected = currentIndex == index;
+            final bool disabled = index == 1 && !isAddEnabled;
+            final Color activeColor = disabled
+                ? Colors.grey.shade400
+                : AppColors.deepBrown;
+            final Color inactiveColor = disabled
+                ? Colors.grey.shade400
+                : AppColors.deepBrown.withValues(alpha: 0.55);
             return InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () => onTap(index),
@@ -52,7 +61,9 @@ class SoftBottomNavBar extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: selected
-                      ? AppColors.secondaryYellow.withValues(alpha: 0.35)
+                      ? (disabled
+                            ? Colors.grey.shade300
+                            : AppColors.secondaryYellow.withValues(alpha: 0.35))
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -60,17 +71,15 @@ class SoftBottomNavBar extends StatelessWidget {
                   children: <Widget>[
                     Icon(
                       items[index].icon,
-                      color: selected
-                          ? AppColors.deepBrown
-                          : AppColors.deepBrown.withValues(alpha: 0.55),
+                      color: selected ? activeColor : inactiveColor,
                     ),
                     if (selected) ...<Widget>[
                       const SizedBox(width: 6),
                       Text(
                         items[index].label,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          color: AppColors.deepBrown,
+                          color: activeColor,
                         ),
                       ),
                     ],

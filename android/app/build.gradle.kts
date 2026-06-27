@@ -21,9 +21,12 @@ android {
     }
 
     kotlinOptions {
-        // To fix the deprecation warning, you can use this or leave as is 
-        // for now as it's just a warning, but the error was on the line above.
         jvmTarget = "17"
+    }
+
+    // Suppress warnings from google_mobile_ads plugin using older Java versions
+    tasks.withType<JavaCompile>().configureEach {
+        options.compilerArgs.add("-Xlint:-options")
     }
 
     defaultConfig {

@@ -1,78 +1,79 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_study_planner/utils/encryption_service.dart';
 
 class Subject {
+  final String id;
+  final String name;
+  final int? studyHours;
+  final String? teacherName;
+
   Subject({
     required this.id,
     required this.name,
-    this.teacherName,
     this.studyHours,
+    this.teacherName,
   });
 
-  final String id;
-  final String name;
-  final String? teacherName; // Added for 5.1 Subject Management
-  final int? studyHours; // Added for 5.1 Subject Management
-
-  factory Subject.fromJson(Map<String, dynamic> json) {
-    return Subject(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      teacherName: json['teacherName'] as String?,
-      studyHours: json['studyHours'] as int?,
-    );
-  }
-
-  Subject copyWith({
-    String? id,
-    String? name,
-    String? teacherName,
-    int? studyHours,
-  }) {
-    return Subject(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      teacherName: teacherName ?? this.teacherName,
-      studyHours: studyHours ?? this.studyHours,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'id': id,
-      'name': name,
-      'teacherName': teacherName,
+  Map<String, dynamic> toMap() {
+    return {
+      'name': EncryptionService.encrypt(name),
       'studyHours': studyHours,
+      'teacherName': teacherName != null
+          ? EncryptionService.encrypt(teacherName!)
+          : null,
     };
+  }
+
+  factory Subject.fromMap(Map<String, dynamic> map, String documentId) {
+    return Subject(
+      id: documentId,
+      name: EncryptionService.decrypt(map['name'] ?? ''),
+      studyHours: map['studyHours'],
+      teacherName: map['teacherName'] != null
+          ? EncryptionService.decrypt(map['teacherName'])
+          : null,
+    );
   }
 }
 
 class StudyTask {
+  final String id;
+  final String title;
+  final String subjectId;
+  final DateTime? deadline;
+  final String priorityLevel;
+  final bool isCompleted;
+
   StudyTask({
     required this.id,
     required this.title,
     required this.subjectId,
-    this.isCompleted = false,
     this.deadline,
-    this.priorityLevel = 'Medium', // Added for 5.2 Task Management
+    this.priorityLevel = 'Medium',
+    this.isCompleted = false,
   });
 
-  final String id;
-  final String title;
-  final String subjectId;
-  final bool isCompleted;
-  final DateTime? deadline; // Added for 5.2 Task Management
-  final String priorityLevel;
+  Map<String, dynamic> toMap() {
+    return {
+      'title': EncryptionService.encrypt(title),
+      'subjectId': subjectId,
+      'deadline': deadline != null ? Timestamp.fromDate(deadline!) : null,
+      'priorityLevel': priorityLevel,
+      'isCompleted': isCompleted,
+    };
+  }
 
-  factory StudyTask.fromJson(Map<String, dynamic> json) {
+  factory StudyTask.fromMap(Map<String, dynamic> map, String documentId) {
     return StudyTask(
-      id: json['id'] as String,
-      title: json['title'] as String,
-      subjectId: json['subjectId'] as String,
-      isCompleted: (json['isCompleted'] as bool?) ?? false,
-      deadline: json['deadline'] != null
-          ? DateTime.parse(json['deadline'] as String)
+      id: documentId,
+      title: EncryptionService.decrypt(map['title'] ?? ''),
+      subjectId: map['subjectId'] ?? '',
+      deadline: map['deadline'] != null
+          ? (map['deadline'] as Timestamp).toDate()
           : null,
-      priorityLevel: json['priorityLevel'] as String? ?? 'Medium',
+      priorityLevel: map['priorityLevel'] ?? 'Medium',
+      isCompleted: map['isCompleted'] ?? false,
     );
   }
 
@@ -80,36 +81,25 @@ class StudyTask {
     String? id,
     String? title,
     String? subjectId,
-    bool? isCompleted,
     DateTime? deadline,
     String? priorityLevel,
+    bool? isCompleted,
   }) {
     return StudyTask(
       id: id ?? this.id,
       title: title ?? this.title,
       subjectId: subjectId ?? this.subjectId,
-      isCompleted: isCompleted ?? this.isCompleted,
       deadline: deadline ?? this.deadline,
       priorityLevel: priorityLevel ?? this.priorityLevel,
+      isCompleted: isCompleted ?? this.isCompleted,
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'id': id,
-      'title': title,
-      'subjectId': subjectId,
-      'isCompleted': isCompleted,
-      'deadline': deadline?.toIso8601String(),
-      'priorityLevel': priorityLevel,
-    };
   }
 }
 
 class StudySession {
   final String id;
   final String subjectId;
-  final int dayOfWeek; // 1 = Monday, 7 = Sunday
+  final int dayOfWeek;
   final TimeOfDay startTime;
   final TimeOfDay endTime;
 
@@ -120,4 +110,29 @@ class StudySession {
     required this.startTime,
     required this.endTime,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'subjectId': subjectId,
+      'dayOfWeek': dayOfWeek,
+      'startTime': {'hour': startTime.hour, 'minute': startTime.minute},
+      'endTime': {'hour': endTime.hour, 'minute': endTime.minute},
+    };
+  }
+
+  factory StudySession.fromMap(Map<String, dynamic> map, String documentId) {
+    return StudySession(
+      id: documentId,
+      subjectId: map['subjectId'] ?? '',
+      dayOfWeek: map['dayOfWeek'] ?? 1,
+      startTime: TimeOfDay(
+        hour: map['startTime']['hour'] ?? 0,
+        minute: map['startTime']['minute'] ?? 0,
+      ),
+      endTime: TimeOfDay(
+        hour: map['endTime']['hour'] ?? 0,
+        minute: map['endTime']['minute'] ?? 0,
+      ),
+    );
+  }
 }

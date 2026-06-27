@@ -6,6 +6,9 @@ import 'package:smart_study_planner/state/app_state.dart';
 import 'package:smart_study_planner/theme/app_colors.dart';
 import 'package:smart_study_planner/widgets/animated_scale_button.dart';
 import 'package:smart_study_planner/widgets/note_input_field.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:smart_study_planner/services/notification_service.dart';
+import 'package:smart_study_planner/utils/app_logger.dart';
 
 class AddTaskScreen extends StatefulWidget {
   const AddTaskScreen({super.key, this.scrollController});
@@ -41,13 +44,16 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
-      firstDate: DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(minutes: 1)),
       lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
               primary: AppColors.primaryOlive,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: AppColors.deepBrown,
             ),
           ),
           child: child!,
@@ -68,6 +74,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
               primary: AppColors.primaryOlive,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: AppColors.deepBrown,
             ),
           ),
           child: child!,
@@ -108,7 +117,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              // 1. HEADER (Locked to top)
+              // 1. APP BAR NAV PANEL
               Row(
                 children: <Widget>[
                   IconButton(
@@ -127,13 +136,13 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
               ),
               const SizedBox(height: 16),
 
-              // 2. FORM AREA (Wrapped in Expanded + ScrollView for keyboard safety)
+              // 2. SCROLLABLE DATA ENTRY CONTAINER
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // DEADLINE CONTAINER
+                      // DATE & TIME STRIP
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
@@ -155,23 +164,29 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                           children: [
                             Expanded(
                               child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
                                 onTap: _pickDate,
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.calendar_month_rounded,
-                                      color: AppColors.primaryOlive,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 15,
-                                        color: AppColors.deepBrown,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.calendar_month_rounded,
+                                        color: AppColors.primaryOlive,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                          color: AppColors.deepBrown,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -182,24 +197,30 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                             ),
                             Expanded(
                               child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
                                 onTap: _pickTime,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.access_time_rounded,
-                                      color: AppColors.secondaryYellow,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      _selectedTime.format(context),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 15,
-                                        color: AppColors.deepBrown,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.access_time_rounded,
+                                        color: AppColors.secondaryYellow,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _selectedTime.format(context),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 15,
+                                          color: AppColors.deepBrown,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -208,7 +229,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // TITLE
+                      // TASK TITLE INPUT
                       NoteInputField(
                         label: 'Task Title',
                         controller: _titleController,
@@ -216,7 +237,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // SUBJECT & PRIORITY
+                      // SELECTORS: DROPDOWN SELECTION BOXES
                       Row(
                         children: [
                           Expanded(
@@ -237,11 +258,15 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: Colors.grey.shade200,
+                                    ),
                                   ),
                                   child: DropdownButtonHideUnderline(
                                     child: DropdownButton<String>(
                                       isExpanded: true,
                                       value: _selectedSubjectId,
+                                      hint: const Text('Select Subject'),
                                       items: subjects.map((Subject subject) {
                                         return DropdownMenuItem<String>(
                                           value: subject.id,
@@ -279,6 +304,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: Colors.grey.shade200,
+                                    ),
                                   ),
                                   child: DropdownButtonHideUnderline(
                                     child: DropdownButton<String>(
@@ -303,52 +331,54 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // COLORS & ALARM
+                      // VISUAL SETTINGS PANEL (COLORS & ALARM SWITCH)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Color Tag',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 6),
-                              Wrap(
-                                spacing: 8,
-                                children: List<Widget>.generate(
-                                  palette.length,
-                                  (int index) {
-                                    final bool selected =
-                                        _selectedColor == index;
-                                    return GestureDetector(
-                                      onTap: () => setState(
-                                        () => _selectedColor = index,
-                                      ),
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 200,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Color Tag',
+                                  style: Theme.of(context).textTheme.titleSmall
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 6),
+                                Wrap(
+                                  spacing: 8,
+                                  children: List<Widget>.generate(
+                                    palette.length,
+                                    (int index) {
+                                      final bool selected =
+                                          _selectedColor == index;
+                                      return GestureDetector(
+                                        onTap: () => setState(
+                                          () => _selectedColor = index,
                                         ),
-                                        width: selected ? 28 : 24,
-                                        height: selected ? 28 : 24,
-                                        decoration: BoxDecoration(
-                                          color: palette[index],
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: selected
-                                                ? AppColors.deepBrown
-                                                : Colors.transparent,
-                                            width: 2,
+                                        child: AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
+                                          width: selected ? 28 : 24,
+                                          height: selected ? 28 : 24,
+                                          decoration: BoxDecoration(
+                                            color: palette[index],
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: selected
+                                                  ? AppColors.deepBrown
+                                                  : Colors.transparent,
+                                              width: 2,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                    );
-                                  },
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           Row(
                             children: [
@@ -368,7 +398,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // TASK DETAILS (Fixed Size!)
+                      // TASK DETAILS DESCRIPTION FIELD
                       Text(
                         'Task Details',
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -378,27 +408,30 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       const SizedBox(height: 6),
                       TextField(
                         controller: _noteController,
-                        maxLines:
-                            4, // <-- Fixed to 4 lines, no longer expands to bottom!
+                        maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
                         decoration: InputDecoration(
                           hintText: 'Add details for this task...',
                           filled: true,
                           fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.all(16),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide.none,
                           ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.grey.shade200),
+                          ),
                         ),
                       ),
-                      const SizedBox(
-                        height: 32,
-                      ), // Padding so keyboard doesn't touch the bottom edge
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
               ),
 
-              // 3. SAVE BUTTON (Locked to bottom)
+              // 3. PERSISTENCE TRIGGER ACTION BUTTON
               SizedBox(
                 width: double.infinity,
                 child: AnimatedScaleButton(
@@ -406,15 +439,19 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: AppColors.secondaryYellow,
+                      color: subjects.isEmpty
+                          ? Colors.grey.shade300
+                          : AppColors.secondaryYellow,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     alignment: Alignment.center,
-                    child: const Text(
+                    child: Text(
                       'Save Task',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
-                        color: AppColors.deepBrown,
+                        color: subjects.isEmpty
+                            ? Colors.grey.shade500
+                            : AppColors.deepBrown,
                         fontSize: 16,
                       ),
                     ),
@@ -435,7 +472,12 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       _selectedSubjectId = appState.subjects.first.id;
     }
 
-    if (_selectedSubjectId == null) return;
+    if (_selectedSubjectId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a valid subject first.')),
+      );
+      return;
+    }
 
     final DateTime deadline = DateTime(
       _selectedDate.year,
@@ -445,25 +487,80 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       _selectedTime.minute,
     );
 
-    final String description = _noteController.text.trim();
-    final String baseTitle = _titleController.text.trim();
-    final String title = baseTitle.isEmpty ? 'Untitled Task' : baseTitle;
-    final String persistedTitle = description.isEmpty
-        ? title
-        : '$title - $description';
+    final String titleInput = _titleController.text.trim();
+    final String cleanTitle = titleInput.isEmpty
+        ? 'New Study Task'
+        : titleInput;
 
-    await appState.addTask(
-      title: persistedTitle,
-      subjectId: _selectedSubjectId!,
-      deadline: deadline,
-      priorityLevel: _selectedPriority,
-    );
+    try {
+      // Persist the task once through AppState so the local cache and cloud stay in sync.
+      final String? taskId = await appState.addTask(
+        title: cleanTitle,
+        subjectId: _selectedSubjectId!,
+        deadline: deadline,
+        priorityLevel: _selectedPriority,
+      );
 
-    if (!context.mounted) return;
+      if (taskId == null) {
+        throw StateError('Failed to save task');
+      }
 
-    Navigator.of(
-      context,
-      rootNavigator: true,
-    ).pushReplacementNamed(AppRoutes.dashboard);
+      // Log task creation
+      await AppLogger.logTaskEvent(
+        'Created',
+        taskId: 'new_task',
+        taskName: cleanTitle,
+        details: 'Task created with priority: $_selectedPriority',
+      );
+
+      // 🔔 🚀 Schedule notification if alarm is enabled
+      if (_alarmEnabled) {
+        final NotificationService notificationService = NotificationService();
+
+        await notificationService.showTaskCreatedNotification(
+          taskId: taskId,
+          taskTitle: cleanTitle,
+          deadline: deadline,
+        );
+
+        await notificationService.scheduleTaskDueNotification(
+          taskId: taskId,
+          taskTitle: cleanTitle,
+          deadline: deadline,
+        );
+
+        // Log notification scheduling
+        await AppLogger.logNotification(
+          'TaskReminder',
+          title: 'Task Created / Task Overdue',
+          body:
+              'Task "$cleanTitle" scheduled with created and due notifications.',
+          details: 'Created at ${DateTime.now()} for deadline $deadline',
+        );
+
+        debugPrint(
+          "Event Listener Log: Notifications scheduled for $cleanTitle with task ID: $taskId",
+        );
+      }
+
+      if (!context.mounted) return;
+      Navigator.of(context).pop();
+    } catch (e) {
+      // Log the error
+      await AppLogger.logError(
+        'Task creation failed',
+        errorCode: 'TASK_SAVE_ERROR',
+        stackTrace: e.toString(),
+      );
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save task: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 }
